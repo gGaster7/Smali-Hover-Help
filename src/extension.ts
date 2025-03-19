@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 
 const smaliOperators: { [key: string]: string } = {
+    // Binary comparison operators
     // Сравнение двух регистров
     'if-eq': '**Branch if equal**\n`if-eq vA, vB, :label` → if (vA == vB)',
     'if-ne': '**Branch if not equal**\n`if-ne vA, vB, :label` → if (vA != vB)',
@@ -9,6 +10,7 @@ const smaliOperators: { [key: string]: string } = {
     'if-gt': '**Branch if greater than**\n`if-gt vA, vB, :label` → if (vA > vB)',
     'if-le': '**Branch if less or equal**\n`if-le vA, vB, :label` → if (vA <= vB)',
 
+    // Comparison with 0 (zero)
     // Сравнение с нулём (zero)
     'if-eqz': '**Branch if zero**\n`if-eqz vA, :label` → if (vA == 0)',
     'if-nez': '**Branch if not zero**\n`if-nez vA, :label` → if (vA != 0)',
@@ -17,10 +19,12 @@ const smaliOperators: { [key: string]: string } = {
     'if-gtz': '**Branch if greater than zero**\n`if-gtz vA, :label` → if (vA > 0)',
     'if-lez': '**Branch if less or equal to zero**\n`if-lez vA, :label` → if (vA <= 0)',
 
+    // Object comparison operators
     // Сравнение объектов
     'if-eq-object': '**Branch if objects equal**\n`if-eq-object vA, vB, :label` → if (objA == objB)',
     'if-ne-object': '**Branch if objects not equal**\n`if-ne-object vA, vB, :label` → if (objA != objB)',
 
+    // Special comparison operators
     // Специальные условия
     'if-cmpeq-float': '**Branch if floats equal** (ordered)',
     'if-cmpne-float': '**Branch if floats not equal** (ordered)',
@@ -86,6 +90,7 @@ export function activate(context: vscode.ExtensionContext) {
     const parser = new SmaliLabelParser();
     const diagnosticCollection = vscode.languages.createDiagnosticCollection('smali');
 
+    // Initialization for open documents
     // Инициализация для открытых документов
     vscode.workspace.textDocuments.forEach(doc => {
         if (doc.languageId === 'smali') {
@@ -93,6 +98,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
+    // Update diagnostics on document change
     // Обновление при изменении документа
     context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(e => {
         if (e.document.languageId === 'smali') {
@@ -101,6 +107,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
     }));
 
+    // Validation on document open
     // Валидация при открытии документа
     context.subscriptions.push(vscode.workspace.onDidOpenTextDocument(doc => {
         if (doc.languageId === 'smali') {
@@ -108,6 +115,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
     }));
 
+    // Tooltip for operators
     // Подсказки для операторов
     const hoverProvider = vscode.languages.registerHoverProvider('smali', {
         provideHover(document, position) {
@@ -123,6 +131,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
+    // Tooltip for labels
     // Подсказки для меток
     const labelHoverProvider = vscode.languages.registerHoverProvider('smali', {
         provideHover(document, position) {
@@ -154,6 +163,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
+    // Jump to label definition
     // Переход к определению
     const definitionProvider = vscode.languages.registerDefinitionProvider('smali', {
         provideDefinition(document, position) {
@@ -165,6 +175,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
+    // Find references for label
     // Поиск ссылок
     const referenceProvider = vscode.languages.registerReferenceProvider('smali', {
         provideReferences(document, position) {
@@ -176,6 +187,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
+    // Document validation
     // Валидация документов
     function validateDocument(document: vscode.TextDocument) {
         const diagnostics: vscode.Diagnostic[] = [];
@@ -204,6 +216,7 @@ export function activate(context: vscode.ExtensionContext) {
         diagnosticCollection.set(document.uri, diagnostics);
     }
 
+    // Registrate all providers
     // Регистрация всех провайдеров
     context.subscriptions.push(
         hoverProvider,
