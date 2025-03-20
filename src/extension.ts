@@ -5,8 +5,6 @@ import * as vscode from 'vscode';
 // EN: Object containing descriptions for Smali operators, used for hover information
 // RU: Объект, содержащий описания операторов Smali, используется для всплывающих подсказок
 const smaliOperators: { [key: string]: string } = {
-    // EN: Condition operations
-    // RU: Операции условий
     'if-eq': '**Branch if equal**\n`if-eq vA, vB, :label` → if (vA == vB)',
     'if-ne': '**Branch if not equal**\n`if-ne vA, vB, :label` → if (vA != vB)',
     'if-lt': '**Branch if less than**\n`if-lt vA, vB, :label` → if (vA < vB)',
@@ -18,15 +16,13 @@ const smaliOperators: { [key: string]: string } = {
     'if-ltz': '**Branch if less than zero**\n`if-ltz vA, :label` → if (vA < 0)',
     'if-gez': '**Branch if greater or equal to zero**\n`if-gez vA, :label` → if (vA >= 0)',
     'if-gtz': '**Branch if greater than zero**\n`if-gtz vA, :label` → if (vA > 0)',
-    'if-lez': '**Branch if less or equal to zero**\n`if-lez vA, :label` → if (vA <= 0)',
+    'if-lez': '**Branch if less or equal to zero**\n`if-lez vA, :label` → if (vA <= vB)',
     'if-eq-object': '**Branch if objects equal**\n`if-eq-object vA, vB, :label` → if (objA == objB)',
     'if-ne-object': '**Branch if objects not equal**\n`if-ne-object vA, vB, :label` → if (objA != objB)',
     'if-cmpeq-float': '**Branch if floats equal** (ordered)',
     'if-cmpne-float': '**Branch if floats not equal** (ordered)',
     'if-cmplt-float': '**Branch if float less than** (ordered)',
     'if-cmpgt-float': '**Branch if float greater than** (ordered)',
-    // EN: Mathematical operations for integers
-    // RU: Математические операции для целых чисел
     'add-int': '**Integer Addition**\n`add-int vA, vB, vC` → vA = vB + vC',
     'sub-int': '**Integer Subtraction**\n`sub-int vA, vB, vC` → vA = vB - vC',
     'mul-int': '**Integer Multiplication**\n`mul-int vA, vB, vC` → vA = vB * vC',
@@ -38,50 +34,32 @@ const smaliOperators: { [key: string]: string } = {
     'shl-int': '**Left Shift**\n`shl-int vA, vB, vC` → vA = vB << vC',
     'shr-int': '**Right Shift**\n`shr-int vA, vB, vC` → vA = vB >> vC',
     'ushr-int': '**Unsigned Right Shift**\n`ushr-int vA, vB, vC` → vA = vB >>> vC',
-
-    // EN: Mathematical operations for long integers
-    // RU: Математические операции для длинных чисел
     'add-long': '**Long Addition**\n`add-long vA, vB, vC` → vA = vB + vC',
     'sub-long': '**Long Subtraction**\n`sub-long vA, vB, vC` → vA = vB - vC',
     'mul-long': '**Long Multiplication**\n`mul-long vA, vB, vC` → vA = vB * vC',
     'div-long': '**Long Division**\n`div-long vA, vB, vC` → vA = vB / vC',
     'rem-long': '**Long Remainder**\n`rem-long vA, vB, vC` → vA = vB % vC',
-
-    // EN: Mathematical operations for floating-point numbers
-    // RU: Математические операции для чисел с плавающей точкой
     'add-float': '**Float Addition**\n`add-float vA, vB, vC` → vA = vB + vC',
     'sub-float': '**Float Subtraction**\n`sub-float vA, vB, vC` → vA = vB - vC',
     'mul-float': '**Float Multiplication**\n`mul-float vA, vB, vC` → vA = vB * vC',
     'div-float': '**Float Division**\n`div-float vA, vB, vC` → vA = vB / vC',
     'rem-float': '**Float Remainder**\n`rem-float vA, vB, vC` → vA = vB % vC',
-
-    // EN: Mathematical operations for double-precision numbers
-    // RU: Математические операции для чисел с двойной точностью
     'add-double': '**Double Addition**\n`add-double vA, vB, vC` → vA = vB + vC',
     'sub-double': '**Double Subtraction**\n`sub-double vA, vB, vC` → vA = vB - vC',
     'mul-double': '**Double Multiplication**\n`mul-double vA, vB, vC` → vA = vB * vC',
     'div-double': '**Double Division**\n`div-double vA, vB, vC` → vA = vB / vC',
     'rem-double': '**Double Remainder**\n`rem-double vA, vB, vC` → vA = vB % vC',
-
-    // EN: Operations with literals
-    // RU: Операции с литералами
     'add-int/lit8': '**Addition with Literal**\n`add-int/lit8 vA, vB, #int C` → vA = vB + C',
     'rsub-int': '**Reverse Subtraction**\n`rsub-int vA, vB, #int C` → vA = C - vB',
-    'mul-int/lit8': '**Multiplication with Literal**\n`mul-int/lit8 vA, vB, #int C` → vA = vB * C'
+    'mul-int/lit8': '**Multiplication with Literal**\n`mul-int/lit8 vA, vB, #int C` → vA = vB * vC'
 };
 
 // EN: Class to parse and manage Smali labels and references
 // RU: Класс для парсинга и управления метками и ссылками в Smali
 class SmaliLabelParser {
-    // EN: Map to store label definitions
-    // RU: Карта для хранения определений меток
     private labels = new Map<string, vscode.Location>();
-    // EN: Map to store label references
-    // RU: Карта для хранения ссылок на метки
     private references = new Map<string, vscode.Location[]>();
 
-    // EN: Updates the document by parsing labels and references
-    // RU: Обновляет документ, парся метки и ссылки
     public updateDocument(document: vscode.TextDocument) {
         const newLabels = new Map<string, vscode.Location>();
         const newReferences = new Map<string, vscode.Location[]>();
@@ -96,8 +74,6 @@ class SmaliLabelParser {
         this.references = newReferences;
     }
 
-    // EN: Processes a line to extract and store a label definition
-    // RU: Обрабатывает строку для извлечения и сохранения определения метки
     private processLabel(line: vscode.TextLine, lineNum: number, uri: vscode.Uri, labels: Map<string, vscode.Location>) {
         const labelMatch = line.text.match(/^(\:\w+)/);
         if (labelMatch) {
@@ -107,8 +83,6 @@ class SmaliLabelParser {
         }
     }
 
-    // EN: Processes a line to extract and store label references
-    // RU: Обрабатывает строку для извлечения и сохранения ссылок на метки
     private processReferences(line: vscode.TextLine, lineNum: number, uri: vscode.Uri, references: Map<string, vscode.Location[]>) {
         const referenceMatches = line.text.matchAll(/(if-\w+|goto|goto\/\w+)\s+.*?(\:\w+)/g);
         for (const match of referenceMatches) {
@@ -123,20 +97,14 @@ class SmaliLabelParser {
         }
     }
 
-    // EN: Gets the definition location of a label
-    // RU: Получает местоположение определения метки
     public getLabelDefinition(label: string): vscode.Location | undefined {
         return this.labels.get(label);
     }
 
-    // EN: Gets all references to a label
-    // RU: Получает все ссылки на метку
     public getLabelReferences(label: string): vscode.Location[] {
         return this.references.get(label) || [];
     }
 
-    // EN: Gets a list of all defined labels
-    // RU: Получает список всех определённых меток
     public getAllLabels(): string[] {
         return Array.from(this.labels.keys());
     }
@@ -147,27 +115,18 @@ class SmaliLabelParser {
 function findRegisterValue(document: vscode.TextDocument, register: string, currentLine: number): number | null {
     for (let i = currentLine - 1; i >= 0; i--) {
         const lineText = document.lineAt(i).text.trim();
-
-        // EN: Check for direct constant assignment (e.g., const v0, 5)
-        // RU: Проверка прямого присвоения константы (например, const v0, 5)
         const constRegex = new RegExp(`^\\s*const(?:\\/\\w+)?\\s+${register}\\s*,\\s*(0x[0-9a-fA-F]+|\\d+)`);
         const constMatch = lineText.match(constRegex);
         if (constMatch) {
             const valueStr = constMatch[1];
             return valueStr.startsWith('0x') || valueStr.startsWith('0X') ? parseInt(valueStr, 16) : parseInt(valueStr, 10);
         }
-
-        // EN: Check for move instruction (e.g., move v0, v1)
-        // RU: Проверка инструкции move (например, move v0, v1)
         const moveRegex = new RegExp(`^\\s*move\\s+${register}\\s*,\\s*(v\\d+)`);
         const moveMatch = lineText.match(moveRegex);
         if (moveMatch) {
             const srcReg = moveMatch[1];
-            return findRegisterValue(document, srcReg, i); // Рекурсивно ищем значение источника
+            return findRegisterValue(document, srcReg, i);
         }
-
-        // EN: Check for addition (e.g., add-int v0, v1, v2)
-        // RU: Проверка сложения (например, add-int v0, v1, v2)
         const addRegex = new RegExp(`^\\s*add-int\\s+${register}\\s*,\\s*(v\\d+)\\s*,\\s*(v\\d+)`);
         const addMatch = lineText.match(addRegex);
         if (addMatch) {
@@ -179,9 +138,6 @@ function findRegisterValue(document: vscode.TextDocument, register: string, curr
                 return val1 + val2;
             }
         }
-
-        // EN: Check for subtraction (e.g., sub-int v0, v1, v2)
-        // RU: Проверка вычитания (например, sub-int v0, v1, v2)
         const subRegex = new RegExp(`^\\s*sub-int\\s+${register}\\s*,\\s*(v\\d+)\\s*,\\s*(v\\d+)`);
         const subMatch = lineText.match(subRegex);
         if (subMatch) {
@@ -205,38 +161,102 @@ function findArrayAssignment(document: vscode.TextDocument, register: string, cu
         const newArrayRegex = new RegExp(`^\\s*new-array\\s+${register}\\s*,\\s*\\w+\\s*,\\s*(\\[\\w+)`, 'i');
         const match = lineText.match(newArrayRegex);
         if (match) {
-            return match[1]; // EN: Returns the array type, e.g., [I for int[]
-                            // RU: Возвращает тип массива, например, [I для int[]
+            return match[1];
         }
     }
     return null;
 }
 
+// EN: Function to convert a Java variable declaration to Smali field syntax with initialization
+// RU: Функция для преобразования объявления переменной на Java в синтаксис поля Smali с инициализацией
+function javaToSmaliField(javaInput: string, className: string): { field: string; initCode?: string } | null {
+    const javaRegex = /^\s*(public|private|protected)?\s*(static)?\s*(final)?\s*(int|long|float|double|boolean|byte|char|short|String|int\[\])\s+([a-zA-Z_]\w*)\s*(?:=\s*(\d+))?\s*;?\s*$/;
+    const match = javaInput.match(javaRegex);
+
+    if (!match) return null;
+
+    const modifier = match[1] || 'public';
+    const isStatic = match[2] ? 'static' : '';
+    const isFinal = match[3] ? 'final' : '';
+    const type = match[4];
+    const name = match[5];
+    const value = match[6];
+
+    const typeMap: { [key: string]: string } = {
+        'int': 'I',
+        'long': 'J',
+        'float': 'F',
+        'double': 'D',
+        'boolean': 'Z',
+        'byte': 'B',
+        'char': 'C',
+        'short': 'S',
+        'String': 'Ljava/lang/String;',
+        'int[]': '[I'
+    };
+
+    const smaliType = typeMap[type];
+    if (!smaliType) return null;
+
+    const modifiers = [modifier, isStatic, isFinal].filter(Boolean).join(' ');
+    const result: { field: string; initCode?: string } = { field: `.field ${modifiers} ${name}:${smaliType}` };
+
+    if (value && !isStatic) { // Static fields require different initialization (e.g., in <clinit>)
+        const hexValue = `0x${parseInt(value).toString(16)}`; // Преобразуем в шестнадцатеричный формат
+        result.initCode = `    const v0, ${hexValue}\n    iput-object v0, p0, ${className}->${name}:${smaliType}`;
+    }
+
+    return result;
+}
+
+// EN: Function to convert a Java method declaration to Smali method syntax
+// RU: Функция для преобразования объявления метода на Java в синтаксис метода Smali
+function javaToSmaliMethod(javaInput: string): string | null {
+    const methodRegex = /^\s*(public|private|protected)?\s*(static)?\s*(void|int|long)\s+([a-zA-Z_]\w*)\s*\(\s*\)\s*;?\s*$/;
+    const match = javaInput.match(methodRegex);
+    if (!match) return null;
+
+    const modifier = match[1] || 'public';
+    const isStatic = match[2] ? 'static' : '';
+    const returnType = match[3];
+    const name = match[4];
+
+    const typeMap: { [key: string]: string } = {
+        'void': 'V',
+        'int': 'I',
+        'long': 'J'
+    };
+
+    const smaliReturnType = typeMap[returnType];
+    if (!smaliReturnType) return null;
+
+    const modifiers = [modifier, isStatic].filter(Boolean).join(' ');
+    let methodBody = '    .locals 0\n';
+    if (returnType === 'void') {
+        methodBody += '    return-void\n';
+    } else {
+        methodBody += `    const v0, 0\n    return v0\n`; // Default return 0 for non-void
+    }
+    return `.method ${modifiers} ${name}()${smaliReturnType}\n${methodBody}.end method`;
+}
+
 // EN: Activation function for the extension, called when the extension is activated
 // RU: Функция активации расширения, вызывается при активации расширения
 export function activate(context: vscode.ExtensionContext) {
-    // EN: Create an instance of SmaliLabelParser to manage labels and references
-    // RU: Создание экземпляра SmaliLabelParser для управления метками и ссылками
     const parser = new SmaliLabelParser();
 
-    // EN: Initialize parser for all currently open documents
-    // RU: Инициализация парсера для всех открытых в данный момент документов
     vscode.workspace.textDocuments.forEach(doc => {
         if (doc.languageId === 'smali') {
             parser.updateDocument(doc);
         }
     });
 
-    // EN: Update labels and references when a Smali document changes
-    // RU: Обновление меток и ссылок при изменении документа Smali
     context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(e => {
         if (e.document.languageId === 'smali') {
             parser.updateDocument(e.document);
         }
     }));
 
-    // EN: Hover provider for Smali operators, displays descriptions on hover
-    // RU: Провайдер всплывающих подсказок для операторов Smali, отображает описания при наведении
     const hoverProvider = vscode.languages.registerHoverProvider('smali', {
         provideHover(document, position) {
             const wordRange = document.getWordRangeAtPosition(position, /[a-zA-Z\-]+/);
@@ -251,8 +271,6 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
-    // EN: Hover provider for Smali labels, shows definition and reference info
-    // RU: Провайдер всплывающих подсказок для меток Smali, показывает информацию об определении и ссылках
     const labelHoverProvider = vscode.languages.registerHoverProvider('smali', {
         provideHover(document, position) {
             const wordRange = document.getWordRangeAtPosition(position, /(?:\:\w+)/);
@@ -283,8 +301,6 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
-    // EN: Definition provider for Smali labels, enables "Go to Definition"
-    // RU: Провайдер определений для меток Smali, включает функцию "Перейти к определению"
     const definitionProvider = vscode.languages.registerDefinitionProvider('smali', {
         provideDefinition(document, position) {
             const wordRange = document.getWordRangeAtPosition(position, /(?:\:\w+)/);
@@ -295,8 +311,6 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
-    // EN: Reference provider for Smali labels, enables "Find All References"
-    // RU: Провайдер ссылок для меток Smali, включает функцию "Найти все ссылки"
     const referenceProvider = vscode.languages.registerReferenceProvider('smali', {
         provideReferences(document, position) {
             const wordRange = document.getWordRangeAtPosition(position, /(?:\:\w+)/);
@@ -307,8 +321,6 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
-    // EN: Hover provider for registers, shows their calculated or assigned values
-    // RU: Провайдер всплывающих подсказок для регистров, показывает их вычисленные или присвоенные значения
     const registerHoverProvider = vscode.languages.registerHoverProvider('smali', {
         provideHover(document, position) {
             const wordRange = document.getWordRangeAtPosition(position, /v\d+/);
@@ -323,8 +335,6 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
-    // EN: Hover provider for "aput" instruction, shows details about array assignment
-    // RU: Провайдер всплывающих подсказок для инструкции "aput", показывает детали присвоения массиву
     const aputHoverProvider = vscode.languages.registerHoverProvider('smali', {
         provideHover(document, position) {
             const line = document.lineAt(position.line);
@@ -332,18 +342,14 @@ export function activate(context: vscode.ExtensionContext) {
             const match = line.text.match(aputRegex);
             if (!match) return;
 
-            const valueReg = match[1]; // EN: Register with the value / RU: Регистр со значением
-            const arrayReg = match[2]; // EN: Register with the array / RU: Регистр с массивом
-            const indexReg = match[3]; // EN: Register with the index / RU: Регистр с индексом
+            const valueReg = match[1];
+            const arrayReg = match[2];
+            const indexReg = match[3];
 
-            // EN: Search for register values
-            // RU: Поиск значений регистров
             const valueConst = findRegisterValue(document, valueReg, position.line);
             const indexConst = findRegisterValue(document, indexReg, position.line);
             const arrayType = findArrayAssignment(document, arrayReg, position.line);
 
-            // EN: Form the hover message
-            // RU: Формирование сообщения для подсказки
             let hoverMessage = `**aput**: Placing a value in an array\n`;
             hoverMessage += `- Value: ${valueConst !== null ? valueConst : `unknown (register ${valueReg})`}\n`;
             hoverMessage += `- Array: ${arrayType ? `type ${arrayType}` : `unknown (register ${arrayReg})`}\n`;
@@ -353,18 +359,101 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
-    // EN: Register all providers with the extension context
-    // RU: Регистрация всех провайдеров в контексте расширения
+    // EN: Command to insert a Smali field or method from Java input with smart field handling and correct class name
+    // RU: Команда для вставки поля или метода Smali из ввода на Java с умной обработкой полей и правильным именем класса
+    const insertSmaliFieldCommand = vscode.commands.registerCommand('smali.insertJavaField', async () => {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor || editor.document.languageId !== 'smali') {
+            vscode.window.showErrorMessage('Please open a Smali file to use this command.');
+            return;
+        }
+
+        const document = editor.document;
+        if (!document) {
+            vscode.window.showErrorMessage('No active document found.');
+            return;
+        }
+
+        const javaInput = await vscode.window.showInputBox({
+            prompt: 'Enter a Java declaration (e.g., "public int x = 42" or "public void doSomething()")',
+            placeHolder: 'public int variableName'
+        });
+
+        if (!javaInput) return;
+
+        const documentText = document.getText();
+        // Улучшенное регулярное выражение для извлечения имени класса
+        const classNameMatch = documentText.match(/\.class\s+(public|private|protected|final|abstract)*\s*L([^;]+);/);
+        const className = classNameMatch ? `L${classNameMatch[2]};` : 'LUnknownClass;';
+
+        // Временная диагностика (можно убрать после проверки)
+        if (!classNameMatch) {
+            console.log('Class name not found in document. Using default: LUnknownClass;');
+            console.log('Document text starts with:', documentText.substring(0, 100));
+        }
+
+        // Пробуем преобразовать как поле
+        const smaliFieldResult = javaToSmaliField(javaInput, className);
+        if (smaliFieldResult) {
+            const position = editor.selection.active; // Текущая позиция курсора
+            const match = smaliFieldResult.field.match(/\.field\s+.*?(\w+):/);
+            if (!match || !match[1]) {
+                vscode.window.showErrorMessage('Failed to extract field name from Smali field declaration.');
+                return;
+            }
+            const fieldName = match[1]; // Извлекаем имя поля
+            const fieldExists = documentText.includes(`.field public ${fieldName}:`) || 
+                                documentText.includes(`.field private ${fieldName}:`) || 
+                                documentText.includes(`.field protected ${fieldName}:`);
+
+            editor.edit(editBuilder => {
+                if (!fieldExists) {
+                    // Находим конец секции # instance fields
+                    let fieldInsertLine = 0;
+                    for (let i = 0; i < document.lineCount; i++) {
+                        const lineText = document.lineAt(i).text.trim();
+                        if (lineText.startsWith('# instance fields')) {
+                            fieldInsertLine = i + 1;
+                        } else if (lineText.startsWith('#') && fieldInsertLine > 0) {
+                            fieldInsertLine = i; // Вставляем перед следующей секцией
+                            break;
+                        } else if (i === document.lineCount - 1 && fieldInsertLine > 0) {
+                            fieldInsertLine = i + 1; // В конец файла, если нет следующей секции
+                        }
+                    }
+                    editBuilder.insert(new vscode.Position(fieldInsertLine, 0), `${smaliFieldResult.field}\n`);
+                }
+
+                // Вставляем код инициализации в месте курсора, если он есть
+                if (smaliFieldResult.initCode) {
+                    editBuilder.insert(position, `${smaliFieldResult.initCode}\n`);
+                }
+            });
+            return;
+        }
+
+        // Пробуем преобразовать как метод
+        const smaliMethod = javaToSmaliMethod(javaInput);
+        if (smaliMethod) {
+            const position = editor.selection.active; // Текущая позиция курсора
+            editor.edit(editBuilder => {
+                editBuilder.insert(position, `${smaliMethod}\n\n`);
+            });
+            return;
+        }
+
+        vscode.window.showErrorMessage('Invalid Java declaration. Example: "public int x = 42" or "public void doSomething()"');
+    });
+
     context.subscriptions.push(
         hoverProvider,
         labelHoverProvider,
         definitionProvider,
         referenceProvider,
         registerHoverProvider,
-        aputHoverProvider
+        aputHoverProvider,
+        insertSmaliFieldCommand
     );
 }
 
-// EN: Deactivation function for the extension, called when the extension is deactivated
-// RU: Функция деактивации расширения, вызывается при деактивации расширения
 export function deactivate() {}
